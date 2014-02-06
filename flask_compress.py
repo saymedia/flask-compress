@@ -47,15 +47,22 @@ class Compress(object):
             self.app.after_request(self.after_request)
 
     def after_request(self, response):
+
+        # return the response untouched for responses that will never be
+        # gzipped, in any contexts.
+        if response.mimetype not in self.app.config['COMPRESS_MIMETYPES']:
+            return response
+
+        # At this point, always put the Vary header, even if the content
+        # is not gzipped in this particular context.
+        response.headers['Vary'] = 'Accept-Encoding'
+
         if self.app.debug and not self.app.config['COMPRESS_DEBUG']:
             return response
 
         accept_encoding = request.headers.get('Accept-Encoding', '')
 
         if 'gzip' not in accept_encoding.lower():
-            return response
-
-        if response.mimetype not in self.app.config['COMPRESS_MIMETYPES']:
             return response
 
         response.direct_passthrough = False
@@ -76,7 +83,6 @@ class Compress(object):
 
         response.data = gzip_buffer.getvalue()
         response.headers['Content-Encoding'] = 'gzip'
-        response.headers['Vary'] = 'Accept-Encoding'
         response.headers['Content-Length'] = len(response.data)
 
         return response
