@@ -55,7 +55,12 @@ class Compress(object):
 
         # At this point, always put the Vary header, even if the content
         # is not gzipped in this particular context.
-        response.headers['Vary'] = 'Accept-Encoding'
+        # Also, apparently, werkzeug has no documented method to "add", not "set", a header.
+        # So we rely on comma separated values.
+        if 'Vary' in response.headers and response.headers['Vary'] is not None and response.headers['Vary'] != "":
+            response.headers['Vary'] += ', Accept-Encoding'
+        else:
+            response.headers['Vary'] = 'Accept-Encoding'
 
         if self.app.debug and not self.app.config['COMPRESS_DEBUG']:
             return response
